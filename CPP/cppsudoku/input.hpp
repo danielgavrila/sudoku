@@ -1,0 +1,114 @@
+#pragma once
+#include "datastructs.hpp"
+#include <filesystem>
+#include <fstream>
+#include <string_view>
+#include <string>
+using TVctCellInput= std::vector<CellInput>;
+
+inline TVctCellInput readContentFile (const std::string &sFile)
+{
+TVctCellInput ret;
+std::string line;
+std::ifstream infile(sFile);
+while (std::getline(infile, line))
+{
+    std::istringstream iss(line);
+    int a, b;
+    if ((iss >> a >> b)) {
+        auto c=CellInput{a,b};
+        ret.emplace_back(c);
+    }
+
+
+}
+return ret;
+}
+
+inline Cell fillCell(const CellInput &x)
+{
+    return Cell{x.p,Value{x.v}};
+}
+
+inline Cell fillCandidate(int i)
+{
+    auto c=Candidates (size);
+    std::iota(c.begin(),c.end(),1);
+    return Cell{i,Value{c}};
+}
+
+inline Table fill(const TVctCellInput &xs)
+{
+
+const auto lng = ranges::size(xs);
+auto ret= Table(lng);
+ranges::transform(ranges::begin(xs),
+                  ranges::end(xs),
+                  ranges::begin(ret),[](auto &o)->Cell
+{
+   return fillCell(o);
+});
+return ret;
+}
+inline bool isFilled(int i,const Table &t)
+{
+    const auto lng = ranges::size(t);
+    auto idxs= TVctInt(lng);
+    ranges::transform(ranges::begin(t),
+                      ranges::end(t),
+                      ranges::begin(idxs),[](auto &o)->int
+    {
+       return o.idx;
+    });
+
+    auto it = ranges::find(idxs, i);
+    if(it == ranges::end(idxs))
+        return false;
+    else
+        return true;
+
+}
+
+
+inline std::optional<Cell> paddingCell(int i,const Table &t)
+{
+    auto ret=std::optional<Cell>();
+if (false==isFilled(i,t))
+    ret=fillCandidate(i);
+return ret;
+
+}
+
+inline Table padding( const TIndexes &xs,const Table &t)
+{
+    const auto lng = ranges::size(xs);
+    auto t0= TableOpt(lng);
+    ranges::transform(ranges::begin(xs),
+                      ranges::end(xs),
+                      ranges::begin(t0),
+                      [t=t](auto &i)->std::optional<Cell>
+    {
+       return paddingCell(i,t);
+    });
+    auto t1= catMaybes(t0);
+    //ranges::copy(ranges::begin(t),ranges::end(t),ranges::back_inserter(t1));
+    ranges::copy(t,ranges::back_inserter(t1));
+    assert(ranges::size(t1)==size*size);
+    return t1;
+}
+
+inline Table toTable(const TVctCellInput &c)
+{
+
+    const auto t0 = fill(c);
+    auto t1= padding(indexes(),t0);
+    ranges::sort(t1,[](auto &x,auto &y)->bool
+    {
+        return x.idx < y.idx;
+    });
+
+    assert(t1[0].idx==0);
+    assert(t1[size*size-1].idx==size*size-1);
+    return cleanTable(t1);
+}
+
