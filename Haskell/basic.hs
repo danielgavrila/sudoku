@@ -72,7 +72,8 @@ val ::Value
 
 data Node = Node {
 act ::[Cell],
-contenders ::[[Cell]]
+contenders ::[[Cell]],
+solutions ::[[Cell]]
 } deriving (Eq,Show)
 
 --used to sort the cells after the length of candidates list
@@ -297,71 +298,6 @@ padding xs t = t ++ catMaybes (map (\i -> paddingCell  i t ) xs )
 
 
 
-
--- replace cell in table
-rplCell::Cell->[Cell]->[Cell]
-rplCell new t = let (x,_:xs) = splitAt (idx new) t in
-                x++(new:xs)
-
---replace table with a list of cell (first argument)
-rplTable::[Cell]->[Cell]->[Cell]
-rplTable news table = foldr rplCell table  news 
-
-neighboursCells :: Neighbours -> [Cell]
-neighboursCells n = (rows n) ++ (cols n) ++ (block n)
-
-
-
-getNeighbours::Cell->[Cell]->Neighbours
-getNeighbours c t = let p1 = idx c in
-                    Neighbours c (getCells (getRows p1) t ) (getCells (getCols p1) t) (getCells (getBlock p1) t)                   
-
-
-
-cleanCell::Cell->[Cell]->[Cell]
-cleanCell t tbl = let cs= neighboursCells (cleanNeighbours (getNeighbours t tbl)) in
-                  rplTable cs tbl
-
-cleanTable::[Cell]->[Cell]
-cleanTable t = let s=foldr cleanCell t t in
-               if validTable s
-               then s 
-               else error "table not valid. No soulution!"
-
-toContenders:: Cell->[Cell]
-toContenders c = case val c of
-                 Filled _ -> []
-                 Candidates l -> map (\x -> Cell (idx c) (Filled x)) l 
-
-backToNode:: Node->Node
-backToNode  n = let ct = (contenders n) in
-                if length ct ==0
-                then error "No solution"
-                else Node (head ct) (tail . contenders $n ) 
-                   
---Haskell ad hoc polymorphism or functions overload from C++ 
-class ToNextNode a where
-      nextNode::Node->a->Node
-
-
-instance ToNextNode CandidatIndexes where
-       nextNode n dc  = 
-                let
-                   newcell= Cell (head (idxs dc)) (Filled (candidate dc))
-                   t =cleanTable (rplCell newcell (act n) )
-                in  
-                Node t (contenders n)   
-
-instance ToNextNode Int  where
-       nextNode n i  = let c= (act n) !! i in  
-                case val c of
-                   Filled _ -> n
-                   Candidates l -> let ct= toContenders c
-                                       a =cleanTable (rplCell (head ct) (act n) )
-                                       t = map (\x -> cleanTable ( rplCell x (act n))) (tail ct ) 
-                                   in
-                                   Node a  (t ++  contenders n)  
-
 --structure that contains for a value candidate all the indexes that might  be filled. 
 --If can be filled just in one position in region it will be selected in backtracking routine immediately
 data CandidatIndexes =  CandidatIndexes
@@ -413,23 +349,92 @@ uniqCandidate  x = if length x ==0
                            then Just (head x)
                            else Nothing
 
-emptyContenders ::Node->Node
-emptyContenders  n = Node (act n)  []
+-- replace cell in table
+rplCell::Cell->[Cell]->[Cell]
+rplCell new t = let (x,_:xs) = splitAt (idx new) t in
+                x++(new:xs)
+
+--replace table with a list of cell (first argument)
+rplTable::[Cell]->[Cell]->[Cell]
+rplTable news table = foldr rplCell table  news 
+
+neighboursCells :: Neighbours -> [Cell]
+neighboursCells n = (rows n) ++ (cols n) ++ (block n)
+
+
+
+getNeighbours::Cell->[Cell]->Neighbours
+getNeighbours c t = let p1 = idx c in
+                    Neighbours c (getCells (getRows p1) t ) (getCells (getCols p1) t) (getCells (getBlock p1) t)                   
+
+
+
+cleanCell::Cell->[Cell]->[Cell]
+cleanCell t tbl = let cs= neighboursCells (cleanNeighbours (getNeighbours t tbl)) in
+                  rplTable cs tbl
+
+cleanTable::[Cell]->[Cell]
+cleanTable t = foldr cleanCell t t 
+
+toContenders:: Cell->[Cell]
+toContenders c = case val c of
+                 Filled _ -> []
+                 Candidates l -> map (\x -> Cell (idx c) (Filled x)) l 
+
+backToNode:: Node->Maybe Node
+backToNode  n = let ct = (contenders n) in
+                if length ct ==0
+                then Nothing
+                else Just (Node ( head ct) (tail . contenders $n )   (solutions n) )
+                   
+--Haskell ad hoc polymorphism or functions overload from C++ 
+class ToNextNode a where
+      nextNode::Node->a->Node
+
+
+instance ToNextNode CandidatIndexes where
+       nextNode n dc  = 
+                let
+                   newcell= Cell (head (idxs dc)) (Filled (candidate dc))
+                   t =cleanTable (rplCell newcell (act n) )
+                in  
+                Node t (contenders n)  (solutions n) 
+
+instance ToNextNode Int  where
+       nextNode n i  = let c= (act n) !! i in  
+                case val c of
+                   Filled _ -> n
+                   Candidates l -> let ct= toContenders c
+                                       a =cleanTable (rplCell (head ct) (act n) )
+                                       t = map (\x -> cleanTable ( rplCell x (act n))) (tail ct ) 
+                                   in
+                                   Node a  (t ++  contenders n)  (solutions n)
+
+
+
+
+addSolution::Node->Node
+addSolution n = Node (act n)  (contenders n ) ((act n ):(solutions n )  )
+
 
 backtracking :: Node-> Node 
 backtracking n = let t = act n in 
                  if isSolved  t == True
                  then
-                     -- emptyContenders    n  
-                     traceShow "---Start Solution:" 
-                     traceShow t
-                     traceShow ("---End Solution: "++ "backToNode length: " ++ show (length (contenders n)) )
-                     backtracking (backToNode n ) 
+                     let addSol= addSolution n
+                         backNode = backToNode addSol
+                     in
+                     case backNode of 
+                        Nothing -> addSol
+                        Just x -> backtracking x 
                  else let oc = orderedCandidates t
                       in
                       if  length oc ==0 
-                      then 
-                          backtracking (backToNode n ) 
+                      then
+                          let  backNode = backToNode n in
+                          case backNode of 
+                              Nothing -> n
+                              Just x -> backtracking x 
                       else 
                            let 
                                 i = indx (head oc)     
@@ -453,6 +458,6 @@ main = do
        let tbl= toTable (toListCI ll)
        --let sol=backtracking (Node  tbl  [])  
        --print sol
-       timeIt $ putStrLn ("Result "  ++ show  (backtracking (Node  tbl  []) ))
+       timeIt $ putStrLn ("Result "  ++ show (solutions (backtracking (Node  tbl  [] []) )))
        print "END"
 
