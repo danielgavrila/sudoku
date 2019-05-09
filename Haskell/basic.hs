@@ -105,7 +105,9 @@ validCell b c =case (val c) of
 
 -- check to see if the length of candidates is at least 0 for the table
 validTable::[Cell]->Bool
-validTable t = foldl  validCell  True t
+validTable t = if length t == size * size 
+                    then foldl  validCell  True t
+                    else False
 
 
 
@@ -412,17 +414,97 @@ instance ToNextNode Int  where
 
 
 
+unitNode:: [Cell] -> Node
+unitNode t =  Node t [] []
+--
+--
+
+return :: [Cell] -> Node
+return t = Node t [] [t]
+
+--Haskell ad hoc polymorphism or functions overload from C++ 
+class CellToNode a where
+      cellToNode::[Cell]->a->Node
+
+instance CellToNode CandidatIndexes where
+-- preconditions : length(dc)==1  
+        cellToNode t dc  = 
+                let
+                   newcell= Cell (head (idxs dc)) (Filled (candidate dc))
+                   t1 =cleanTable (rplCell newcell t )
+                in 
+                if validTable t1== True
+                then unitNode t1 --valid table, continues the search with this table
+                else unitNode t  --invalid table , return the same table
+
+instance CellToNode Int  where
+       cellToNode t i  = let c= t  !! i in  
+                case val c of
+                   Filled _ ->unitNode t 
+                   Candidates l -> let ct= toContenders c
+                                       ts1 = map (\x -> cleanTable ( rplCell x t ))  ct  
+                                       ts2 = filter (\x -> validTable x == True) ts1 --filter the valid tables only
+                                   in
+                                   if length ts2 > 0 
+                                   then 
+                                       Node (head ts2) (tail ts2)  []
+                                   else 
+                                       unitNode t
+
+
+
+
+contBind::[Cell]->Node
+contBind t  =  if isSolved t == True
+               then                   
+                   return t 
+               else let oc = orderedCandidates t in
+                    if length oc == 0  -- move not possible in the search space
+                    then
+                        unitNode t
+                    else 
+                           let uq=uniqCandidate (allCandidatIndexes  allRegions t) in   -- try to find a unique candidate in region
+                           case uq of 
+                              Nothing ->  cellToNode t ( indx (head oc) ) -- take the first candidate (multiple choices in the search space, the contenders list will grow)
+                              Just idUniq ->cellToNode t idUniq --unique move in the search space, 
+
+
+                              
+-- guard for search termination,table is empty and  list of contenders is empty
+guard::Node ->Bool
+guard n = if  length (act n)==0  && length (contenders n)==0   
+          then True
+          else False
+
+(>>=) :: Node  -> ([Cell] -> Node) ->Node
+n >>= f = let comp = f (act n) in
+          if (act n) == (act comp) -- not able to find a new node in the search space , therefore backtracking or stop the search
+              then
+                if length (contenders n) > 0
+                then   -- backtracking   , continues with the head of contenders list
+                   Node (head (contenders n )) (tail (contenders n )) ((solutions comp  ) ++ (solutions n))
+                else   -- list of contenders is empty, stop searching 
+                   Node [] [] ( (solutions comp  ) ++ (solutions n) )
+           else  -- normal continuation
+               Node (act  comp) ( (contenders comp  ) ++ (contenders n)  )   ( (solutions comp  ) ++ (solutions n)   )
+
+
+
+solve ::Node-> Node 
+solve n = let cont= n >>= contBind in
+          if guard cont == True
+          then cont    -- stop
+          else solve cont --continues the search
 
 addSolution::Node->Node
 addSolution n = Node (act n)  (contenders n ) ((act n ):(solutions n )  )
-
 
 backtracking :: Node-> Node 
 backtracking n = let t = act n in 
                  if isSolved  t == True
                  then
                      let addSol= addSolution n
-                         backNode = backToNode addSol
+                         backNode = backToNode addSol --concat the solutions
                      in
                      case backNode of 
                         Nothing -> addSol
@@ -445,19 +527,20 @@ backtracking n = let t = act n in
                               Just idUniq -> backtracking (nextNode n idUniq) 
                               
 
-
-
+          
 main :: IO ()
 main = do 
 
        a <- getArgs
        print a
-       --contents <- readFile "easy01.txt"
+       --contents <- readFile "../Inputs/expert02.txt"
        contents <- readFile (head a) -- "expert01.txt"
        let ll = lines contents
        let tbl= toTable (toListCI ll)
        --let sol=backtracking (Node  tbl  [])  
        --print sol
        timeIt $ putStrLn ("Result "  ++ show (solutions (backtracking (Node  tbl  [] []) )))
+       print "solver  monadic"
+       timeIt $ putStrLn ("Result: "  ++ show (solutions (solve (Node  tbl  [] []) )))
        print "END"
 
