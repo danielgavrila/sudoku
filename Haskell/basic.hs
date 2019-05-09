@@ -526,8 +526,13 @@ backtracking n = let t = act n in
                               Nothing ->   backtracking (nextNode n i) 
                               Just idUniq -> backtracking (nextNode n idUniq) 
                               
-
-          
+oneShot::String->Node
+oneShot contents= let           
+                    ll = lines contents
+                    tbl= toTable (toListCI ll)
+                    n= unitNode tbl
+                  in
+                    solve n
 main :: IO ()
 main = do 
 
@@ -539,8 +544,9 @@ main = do
        let tbl= toTable (toListCI ll)
        --let sol=backtracking (Node  tbl  [])  
        --print sol
-       timeIt $ putStrLn ("Result "  ++ show (solutions (backtracking (Node  tbl  [] []) )))
+       --timeIt $ putStrLn ("Result "  ++ show (solutions (backtracking (Node  tbl  [] []) )))
        print "solver  monadic"
-       timeIt $ putStrLn ("Result: "  ++ show (solutions (solve (Node  tbl  [] []) )))
+       --timeIt $ putStrLn ("Result: "  ++ show (solutions (solve (Node  tbl  [] []) )))
+       timeIt $ putStrLn ("Result: "  ++ show (oneShot (contents)))
        print "END"
 

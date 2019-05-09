@@ -32,8 +32,9 @@ inline Cell fillCell(const CellInput &x)
 
 inline Cell fillCandidate(int i)
 {
-    auto c=Candidates (size);
-    std::iota(c.begin(),c.end(),1);
+//    auto c=Candidates (sizeTbl);
+//    std::iota(c.begin(),c.end(),1);
+    auto c = ranges::view::take(ranges::view::ints(1), sizeTbl);
     return Cell{i,Value{c}};
 }
 
@@ -42,8 +43,7 @@ inline Table fill(const TVctCellInput &xs)
 
 const auto lng = ranges::size(xs);
 auto ret= Table(lng);
-ranges::transform(ranges::begin(xs),
-                  ranges::end(xs),
+ranges::transform(xs,
                   ranges::begin(ret),[](auto &o)->Cell
 {
    return fillCell(o);
@@ -54,9 +54,7 @@ inline bool isFilled(int i,const Table &t)
 {
     const auto lng = ranges::size(t);
     auto idxs= TVctInt(lng);
-    ranges::transform(ranges::begin(t),
-                      ranges::end(t),
-                      ranges::begin(idxs),[](auto &o)->int
+    ranges::transform(t,ranges::begin(idxs),[](auto &o)->int
     {
        return o.idx;
     });
@@ -83,17 +81,16 @@ inline Table padding( const TIndexes &xs,const Table &t)
 {
     const auto lng = ranges::size(xs);
     auto t0= TableOpt(lng);
-    ranges::transform(ranges::begin(xs),
-                      ranges::end(xs),
+    ranges::transform(xs,
                       ranges::begin(t0),
                       [t=t](auto &i)->std::optional<Cell>
     {
        return paddingCell(i,t);
     });
     auto t1= catMaybes(t0);
-    //ranges::copy(ranges::begin(t),ranges::end(t),ranges::back_inserter(t1));
+
     ranges::copy(t,ranges::back_inserter(t1));
-    assert(ranges::size(t1)==size*size);
+    assert(ranges::size(t1)==sizeTbl*sizeTbl);
     return t1;
 }
 
@@ -108,7 +105,7 @@ inline Table toTable(const TVctCellInput &c)
     });
 
     assert(t1[0].idx==0);
-    assert(t1[size*size-1].idx==size*size-1);
+    assert(t1[sizeTbl*sizeTbl-1].idx==sizeTbl*sizeTbl-1);
     return cleanTable(t1);
 }
 

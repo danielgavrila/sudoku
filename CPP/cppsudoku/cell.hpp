@@ -20,8 +20,8 @@ inline void print (const Table &t)
         {
         case 0:
         {
-         auto fil=std::get<0>(o.val);
-         std::cout << " ,F= "<<fil;
+            auto fil=std::get<0>(o.val);
+            std::cout << " ,F= "<<fil;
         }
             break;
         case 1:
@@ -31,10 +31,10 @@ inline void print (const Table &t)
             bool bFst=true;
             for (auto &x:lst)
             {
-              if(false==bFst)
-                 std::cout <<", ";
-              std::cout <<x;
-              bFst=false;
+                if(false==bFst)
+                    std::cout <<", ";
+                std::cout <<x;
+                bFst=false;
             }
             std::cout <<"]";
 
@@ -50,8 +50,9 @@ inline void print (const Table &t)
 inline void print (const Node &n)
 {
     std::cout << "Node:\n";
-    print (n.act);
-    std::cout << "size contenders :" << n.contenders.size()<< std::endl;
+    assert(n.solutions.size()==1);
+    print (n.solutions[0]);
+    //std::cout << "size contenders :" << n.contenders.size()<< std::endl;
 }
 
 inline Table rplCell(const Cell &newCell, const Table &t)
@@ -132,11 +133,11 @@ inline TVctInt indexesRow(int r)
 {
     //indexesRow r = [size*r+x| x<-[0..size - 1 ]]
 
-    auto ct = ranges::view::take(ranges::view::ints(0), size);
+    auto ct = ranges::view::take(ranges::view::ints(0), sizeTbl);
 
     auto row= ct | ranges::view::for_each([r=r](int x)
     {
-        return ranges::yield(size*r+x);
+        return ranges::yield(sizeTbl*r+x);
     });
     return row;
 }
@@ -145,10 +146,10 @@ inline TVctInt indexesCol(int c)
 {
 
     //indexesCol c = [x*size+c| x<-[0..size -1 ]]
-    auto ct = ranges::view::take(ranges::view::ints(0), size);
+    auto ct = ranges::view::take(ranges::view::ints(0), sizeTbl);
     auto col= ct | ranges::view::for_each([c=c](int x)
     {
-        return ranges::yield(size*x+c);
+        return ranges::yield(sizeTbl*x+c);
     });
     return col;
 
@@ -168,7 +169,7 @@ inline TVctInt indexesBlock(int b)
                       [b=b](auto && p)->int
     {
 
-        return (b+std::get<0>(p)*size+std::get<1>(p));
+        return (b+std::get<0>(p)*sizeTbl+std::get<1>(p));
     }
     );
     return block;
@@ -187,7 +188,7 @@ inline TVctInt upperLeftCorners()
                       [](auto && p)->int
     {
 
-        return (std::get<0>(p)*sqrtsize*size+sqrtsize*std::get<1>(p));
+        return (std::get<0>(p)*sqrtsize*sizeTbl+sqrtsize*std::get<1>(p));
     }
     );
     return block;
@@ -197,7 +198,7 @@ inline std::vector<TVctInt> allRegions()
 {
     //lsRows= map (\x -> indexesRow x )  [0..size -1]
     std::vector<TVctInt> lsRows,lsCols,lsBlocks;
-    const auto ct = ranges::view::take(ranges::view::ints(0), size);
+    const auto ct = ranges::view::take(ranges::view::ints(0), sizeTbl);
     ranges::transform(ct,ranges::back_inserter(lsRows),
                       [](auto && p)->TVctInt
     {
@@ -318,7 +319,7 @@ inline bool checkRegion (bool b,const TVctInt& xs)
 //checkTable::[Cell]->Bool
 inline bool checkTable (const Table& t)
 {
-    const auto ct = ranges::view::take(ranges::view::ints(0), size);
+    const auto ct = ranges::view::take(ranges::view::ints(0), sizeTbl);
 
     auto lsRows= valsInRegions( valRow ,ct ,t   );
     auto br=ranges::accumulate( lsRows,true,  checkRegion);
@@ -363,9 +364,9 @@ inline bool isSolved(const Table &t)
 
 inline Pos getPos(int i)
 {
-    assert(0<=i && i < size*size);
+    assert(0<=i && i < sizeTbl*sizeTbl);
 
-    return Pos{i/size,i%size};
+    return Pos{i/sizeTbl,i%sizeTbl};
 }
 
 //return a list of cells given the list of indexes
@@ -419,7 +420,7 @@ inline TVctInt getBlock(int idx)
 
     const auto a1 = p.row  / sqrtsize;
     const auto a2 = p.col  / sqrtsize;
-    const auto ul =a1*sqrtsize*size+ a2*sqrtsize ;//upper left corner
+    const auto ul =a1*sqrtsize*sizeTbl+ a2*sqrtsize ;//upper left corner
 
     auto line = indexesBlock(ul);
     auto it=ranges::partition(line,[idx=idx](auto &o)
@@ -469,7 +470,9 @@ inline bool validCell(bool b, const Cell &c)
 //validTable::[Cell]->Bool
 inline bool validTable(const Table &t)
 {
-    return ranges::accumulate(t,true,validCell);
+    if (t.size () ==sizeTbl*sizeTbl)
+        return ranges::accumulate(t,true,validCell);
+    return false;
 }
 
 //cleanCell::Cell->[Cell]->[Cell]
@@ -484,12 +487,7 @@ inline Table cleanCell(const Cell &c,const Table &t)
 inline Table cleanTable(const Table &t )
 {
     auto ret= t;
-    ret= foldr(cleanCell,ret,t);
-    if (false==validTable(ret))
-    {
-        std::cout << "table not valid. No soulution!";
-        exit(1);
-    }
+    return  foldr(cleanCell,ret,t);
     return ret;
 
 }
@@ -501,7 +499,7 @@ inline TVctInt candidatesRegion(const TVctInt &r, const Table &t)
 
     ranges::sort(tmp1);
     TVctInt tmp2;
-    tmp2.resize(size);
+    tmp2.resize(sizeTbl);
     std::iota(tmp2.begin(), tmp2.end(), 1);
 
     TVctInt diff;
@@ -735,5 +733,146 @@ inline void backtracking(const Node &n)
         }
     }
 }
+//unitNode:: [Cell] -> Node
+inline Node unitNode(const Table &t)
+{
+    return Node {t ,{},{}};
+}
+
+inline Node returnNode(const Table &t)
+{
+    return Node {t ,{},{t}};
+}
 
 
+//guard::Node ->Bool
+inline bool guard(const Node &n)
+{
+    if (0==n.act.size() && 0==n.contenders.size())
+        return true;
+    else
+        return false;
+
+}
+
+
+//nextNode::Node->a->Node
+inline Node cellToNode(const Table &t,const CandidatIndexes &dc )
+{
+    const auto newcell= Cell{ dc.idxs[0],dc.candidate};
+const auto t1 =cleanTable (rplCell( newcell, t ));
+if (validTable (t1))
+   return unitNode (t1);
+else
+   return unitNode (t);
+
+}
+
+inline Node cellToNode(const Table &t,int i )
+{
+    auto res=unitNode(t);
+    const auto c= t[ i];
+    if(1==c.val.index())
+    {
+        auto l= std::get<1>(c.val);
+        const auto ct = toContenders(c);
+        std::vector<Table> ts1;
+        ranges::transform(ct,ranges::back_inserter(ts1),
+                          [t=t](auto &&x)->Table
+        {
+            return cleanTable ( rplCell (x ,t ));
+        });
+
+        auto it = ranges::partition(ts1,[](auto &&x)->bool
+        {
+            return validTable ( x );
+        });
+
+        auto ts2 = std::vector<Table>(ts1.begin(),it);
+        if(ts2.size() > 0)
+        {
+            auto tail = std::vector<Table>(ts2.begin()+1,ts2.end());
+            res=Node{ts2[0],tail,{}};
+    }
+}
+
+return res;
+}
+
+
+//contBind::[Cell]->Node
+inline Node contBind(const Table & t)
+{
+    if (isSolved (t) == true)
+       return returnNode(t);
+    else
+    {
+        auto oc = orderedCandidates( t);
+        if(oc.size()==0)
+        {
+
+            return unitNode(t);
+        }
+        else
+        {
+
+            const auto reg = allRegions();
+            const auto uq= uniqCandidate(allCandidatIndexes(reg,t));
+            if(!uq)
+            {
+                const auto i= oc[0].indx;
+                //std::cout <<"orderedCandidates,idx= "<< i << " length: "<<  oc[0].lng<< std::endl;
+                return cellToNode(t,i);
+            }
+            else
+            {
+                //std::cout <<"uniqueCandidate,idx= "<< (*uq).idxs[0] << std::endl;
+                return cellToNode(t,*uq);
+            }
+        }
+
+
+    }
+}
+
+template <typename F>
+inline Node bind (const Node &n, F &&f)
+{
+    auto comp = f (n.act);
+
+    ranges::copy(n.solutions,ranges::back_inserter(comp.solutions));
+    if (comp.act==n.act)
+    {
+        if (n.contenders.size() > 0)// backtracking   , continues with the head of contenders list
+        {
+    //        std::cout << "backtracking\n";
+            auto head = n.contenders[0];
+            auto tail = std::vector<Table>(n.contenders.begin()+1,n.contenders.end());
+            return Node {head,tail,comp.solutions};
+
+        }
+        else
+        {
+//            std::cout << "end search\n";
+            return Node {{},{},comp.solutions};
+        }
+    }
+    else
+    {
+  //      std::cout << "continues\n";
+        ranges::copy(n.contenders,ranges::back_inserter(comp.contenders));
+        return Node {comp.act,comp.contenders,comp.solutions};
+    }
+}
+
+
+//solve ::Node-> Node
+inline Node solve(const Node &n)
+{
+    const auto cont = bind (n,contBind);
+    if (guard(cont))
+        return cont;
+    else
+       return solve (cont);
+
+}

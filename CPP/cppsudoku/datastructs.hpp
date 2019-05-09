@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <set>
 constexpr int sqrtsize=3;
-constexpr int size=sqrtsize*sqrtsize;
+constexpr int sizeTbl=sqrtsize*sqrtsize;
 
 
 struct CellInput {
@@ -21,7 +21,7 @@ struct Pos {
   int row,col;
 };
 
-using TIndexes = std::array<int,size*size>;
+using TIndexes = std::array<int,sizeTbl*sizeTbl>;
 using TVctInt = std::vector<int>;
 using TVctIntOpt = std::vector<std::optional< int>>;
 
@@ -33,13 +33,37 @@ struct Cell {
   Value val;
 };
 
+inline bool operator == (const Cell &a , const Cell &b)
+{
+    return std::tie(a.idx,a.val)== std::tie(b.idx,b.val);
+}
+
+
+
 using Table = std::vector <Cell>;
 using TableOpt = std::vector <std::optional<Cell>>;
 
+inline bool operator == (const Table &a , const Table &b)
+{
 
+    if (a.size()==b.size())
+    {
+        for(auto i=0u; i< a.size();i++)
+        {
+            if (!(a[i]==b[i]))
+                return false;
+        }
+    }
+    else
+       return false;
+
+    return true;
+
+}
 struct Node {
    Table act ;
    std::vector<Table> contenders;
+   std::vector<Table> solutions;
 };
 
 struct OrdCandidates {
