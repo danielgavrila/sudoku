@@ -610,54 +610,7 @@ inline Table toContenders(const Cell &c)
     }
     return res;
 }
-//backToNode:: Node->Node
-inline Node backToNode(const Node &n)
-{
-    const auto ct = n.contenders;
-    if (ct.size()==0)
-    {
-        std::cout << "No solution\n";
-        exit(1);
-    }
 
-    auto tmp=std::vector<Table>(ct.begin()+1,ct.end());
-    return Node{ct[0],tmp};
-}
-
-
-//nextNode::Node->a->Node
-inline Node nextNode(const Node &n,const CandidatIndexes &dc )
-{
-    const auto newcell= Cell{ dc.idxs[0],dc.candidate};
-const auto t =cleanTable (rplCell( newcell, n.act ));
-return Node {t,n.contenders};
-
-}
-
-inline Node nextNode(const Node &n,int i )
-{
-    auto res =n;
-    const auto c= n.act[ i];
-    if(1==c.val.index())
-    {
-        auto l= std::get<1>(c.val);
-        const auto ct = toContenders(c);
-        const auto a = cleanTable (rplCell (ct[0], n.act ) );
-
-        auto tail=Table(ct.begin()+1,ct.end());
-        std::vector<Table> tmp;
-        ranges::transform(tail,ranges::back_inserter(tmp),
-                          [n=n](auto &&x)->Table
-        {
-            return cleanTable ( rplCell (x ,n.act ));
-        });
-
-        ranges::copy(n.contenders,ranges::back_inserter(tmp));
-        res = Node {a,tmp};
-    }
-
-    return res;
-}
 
 //buildOrdCandidates :: Cell -> OrdCandidates
 inline OrdCandidates buildOrdCandidates(const Cell &c)
@@ -671,7 +624,7 @@ inline OrdCandidates buildOrdCandidates(const Cell &c)
     case 1:
     {
         auto x = std::get<1>(c.val);
-        res=OrdCandidates{c.idx,x.size()};
+        res=OrdCandidates{c.idx,static_cast<int>(x.size())};
     }
         break;
 
@@ -697,48 +650,14 @@ inline VctOrdCandidates orderedCandidates(const Table &t)
     });
     return ret;
 }
-//backtracking :: Node-> Node
-inline void backtracking(const Node &n)
-{
-    auto t = n.act;
-    if (isSolved(t))
-    {
-        std::cout << "solved:\n";
-        print(n);
-        //print(t);
-        //exit(1);
-        return ;
-    }
-    auto oc = orderedCandidates( t);
-    if(oc.size()==0)
-    {
-        std::cout <<"backtracking -> backToNode\n";
-        backtracking(backToNode(n));
-    }
-    else
-    {
 
-        const auto reg = allRegions();
-        const auto uq= uniqCandidate(allCandidatIndexes(reg,t));
-        if(!uq)
-        {
-            const auto i= oc[0].indx;
-            //std::cout <<"orderedCandidates,idx= "<< i << " length: "<<  oc[0].lng<< std::endl;
-            backtracking(nextNode(n,i));
-        }
-        else
-        {
-            //std::cout <<"uniqueCandidate,idx= "<< (*uq).idxs[0] << std::endl;
-            backtracking(nextNode(n,*uq));
-        }
-    }
-}
+
 //unitNode:: [Cell] -> Node
 inline Node unitNode(const Table &t)
 {
     return Node {t ,{},{}};
 }
-
+//return monad funtion
 inline Node returnNode(const Table &t)
 {
     return Node {t ,{},{t}};

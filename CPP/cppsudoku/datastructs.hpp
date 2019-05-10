@@ -21,7 +21,7 @@ struct Pos {
   int row,col;
 };
 
-using TIndexes = std::array<int,sizeTbl*sizeTbl>;
+
 using TVctInt = std::vector<int>;
 using TVctIntOpt = std::vector<std::optional< int>>;
 
@@ -72,11 +72,10 @@ struct OrdCandidates {
 
 using VctOrdCandidates=std::vector<OrdCandidates>;
 
-inline  TIndexes indexes()
+inline  TVctInt indexes()
 {
-    TIndexes ret;
-    std::iota(ret.begin(), ret.end(), 0);
-    return ret;
+    auto c = ranges::view::take(ranges::view::ints(0), sizeTbl*sizeTbl);
+    return TVctInt  {c};
 }
 
 struct Neighbours{

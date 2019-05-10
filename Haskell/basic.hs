@@ -383,41 +383,10 @@ toContenders c = case val c of
                  Filled _ -> []
                  Candidates l -> map (\x -> Cell (idx c) (Filled x)) l 
 
-backToNode:: Node->Maybe Node
-backToNode  n = let ct = (contenders n) in
-                if length ct ==0
-                then Nothing
-                else Just (Node ( head ct) (tail . contenders $n )   (solutions n) )
-                   
---Haskell ad hoc polymorphism or functions overload from C++ 
-class ToNextNode a where
-      nextNode::Node->a->Node
-
-
-instance ToNextNode CandidatIndexes where
-       nextNode n dc  = 
-                let
-                   newcell= Cell (head (idxs dc)) (Filled (candidate dc))
-                   t =cleanTable (rplCell newcell (act n) )
-                in  
-                Node t (contenders n)  (solutions n) 
-
-instance ToNextNode Int  where
-       nextNode n i  = let c= (act n) !! i in  
-                case val c of
-                   Filled _ -> n
-                   Candidates l -> let ct= toContenders c
-                                       a =cleanTable (rplCell (head ct) (act n) )
-                                       t = map (\x -> cleanTable ( rplCell x (act n))) (tail ct ) 
-                                   in
-                                   Node a  (t ++  contenders n)  (solutions n)
-
 
 
 unitNode:: [Cell] -> Node
 unitNode t =  Node t [] []
---
---
 
 return :: [Cell] -> Node
 return t = Node t [] [t]
@@ -427,7 +396,7 @@ class CellToNode a where
       cellToNode::[Cell]->a->Node
 
 instance CellToNode CandidatIndexes where
--- preconditions : length(dc)==1  
+-- precondition : length(dc)==1
         cellToNode t dc  = 
                 let
                    newcell= Cell (head (idxs dc)) (Filled (candidate dc))
@@ -496,35 +465,7 @@ solve n = let cont= n >>= contBind in
           then cont    -- stop
           else solve cont --continues the search
 
-addSolution::Node->Node
-addSolution n = Node (act n)  (contenders n ) ((act n ):(solutions n )  )
 
-backtracking :: Node-> Node 
-backtracking n = let t = act n in 
-                 if isSolved  t == True
-                 then
-                     let addSol= addSolution n
-                         backNode = backToNode addSol --concat the solutions
-                     in
-                     case backNode of 
-                        Nothing -> addSol
-                        Just x -> backtracking x 
-                 else let oc = orderedCandidates t
-                      in
-                      if  length oc ==0 
-                      then
-                          let  backNode = backToNode n in
-                          case backNode of 
-                              Nothing -> n
-                              Just x -> backtracking x 
-                      else 
-                           let 
-                                i = indx (head oc)     
-                                uq=uniqCandidate (allCandidatIndexes  allRegions t)
-                           in
-                           case uq of 
-                              Nothing ->   backtracking (nextNode n i) 
-                              Just idUniq -> backtracking (nextNode n idUniq) 
                               
 oneShot::String->Node
 oneShot contents= let           
@@ -540,13 +481,6 @@ main = do
        print a
        --contents <- readFile "../Inputs/expert02.txt"
        contents <- readFile (head a) -- "expert01.txt"
-       let ll = lines contents
-       let tbl= toTable (toListCI ll)
-       --let sol=backtracking (Node  tbl  [])  
-       --print sol
-       --timeIt $ putStrLn ("Result "  ++ show (solutions (backtracking (Node  tbl  [] []) )))
-       print "solver  monadic"
-       --timeIt $ putStrLn ("Result: "  ++ show (solutions (solve (Node  tbl  [] []) )))
        timeIt $ putStrLn ("Result: "  ++ show (oneShot (contents)))
        print "END"
 

@@ -77,7 +77,7 @@ return ret;
 
 }
 
-inline Table padding( const TIndexes &xs,const Table &t)
+inline Table padding( const TVctInt &xs,const Table &t)
 {
     const auto lng = ranges::size(xs);
     auto t0= TableOpt(lng);
