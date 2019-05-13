@@ -38,11 +38,11 @@ inline Cell fillCandidate(int i)
     return Cell{i,Value{c}};
 }
 
-inline Table fill(const TVctCellInput &xs)
+inline Grid fill(const TVctCellInput &xs)
 {
 
 const auto lng = ranges::size(xs);
-auto ret= Table(lng);
+auto ret= Grid(lng);
 ranges::transform(xs,
                   ranges::begin(ret),[](auto &o)->Cell
 {
@@ -50,7 +50,7 @@ ranges::transform(xs,
 });
 return ret;
 }
-inline bool isFilled(int i,const Table &t)
+inline bool isFilled(int i,const Grid &t)
 {
     const auto lng = ranges::size(t);
     auto idxs= TVctInt(lng);
@@ -68,7 +68,7 @@ inline bool isFilled(int i,const Table &t)
 }
 
 
-inline std::optional<Cell> paddingCell(int i,const Table &t)
+inline std::optional<Cell> paddingCell(int i,const Grid &t)
 {
     auto ret=std::optional<Cell>();
 if (false==isFilled(i,t))
@@ -77,10 +77,10 @@ return ret;
 
 }
 
-inline Table padding( const TVctInt &xs,const Table &t)
+inline Grid padding( const TVctInt &xs,const Grid &t)
 {
     const auto lng = ranges::size(xs);
-    auto t0= TableOpt(lng);
+    auto t0= GridOpt(lng);
     ranges::transform(xs,
                       ranges::begin(t0),
                       [t=t](auto &i)->std::optional<Cell>
@@ -94,7 +94,7 @@ inline Table padding( const TVctInt &xs,const Table &t)
     return t1;
 }
 
-inline Table toTable(const TVctCellInput &c)
+inline Grid toGrid(const TVctCellInput &c)
 {
 
     const auto t0 = fill(c);
@@ -106,6 +106,6 @@ inline Table toTable(const TVctCellInput &c)
 
     assert(t1[0].idx==0);
     assert(t1[sizeTbl*sizeTbl-1].idx==sizeTbl*sizeTbl-1);
-    return cleanTable(t1);
+    return cleanGrid(t1);
 }
 

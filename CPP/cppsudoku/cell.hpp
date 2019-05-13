@@ -43,7 +43,7 @@ inline void print (const Cell &c)
 
 }
 
-inline void print (const Table &t)
+inline void print (const Grid &t)
 {
 
 
@@ -61,7 +61,7 @@ inline void print (const Node &n)
     //std::cout << "size contenders :" << n.contenders.size()<< std::endl;
 }
 
-inline Table rplCell(const Cell &newCell, const Table &t)
+inline Grid rplCell(const Cell &newCell, const Grid &t)
 {
     auto ret=t;
     const auto i = newCell.idx;
@@ -70,7 +70,7 @@ inline Table rplCell(const Cell &newCell, const Table &t)
 }
 
 
-inline Table rplTable(const Table &news, const Table &t)
+inline Grid rplGrid(const Grid &news, const Grid &t)
 {
     auto ret= t;
     return foldr(rplCell,ret,news);
@@ -114,10 +114,10 @@ inline Cell cleanCandidate(const Cell &pivot,const Cell &c )
     return ret;
 }
 
-inline Table cleanRegion(const Cell &p,const Table &reg )
+inline Grid cleanRegion(const Cell &p,const Grid &reg )
 {
     const auto lng = ranges::size(reg);
-    auto r= Table(lng);
+    auto r= Grid(lng);
     ranges::transform(reg,ranges::begin(r),
                       [p=p](auto &o)->Cell
     {
@@ -239,7 +239,7 @@ inline std::vector<TVctInt> allRegions()
 
 
 //valOfCell :: Int ->[Cell]->Maybe Int
-inline std::optional <int> valOfCell ( int i,const Table& t )
+inline std::optional <int> valOfCell ( int i,const Grid& t )
 {
     auto res=std::optional <int>();
     if(0==t[i].val.index())
@@ -250,7 +250,7 @@ inline std::optional <int> valOfCell ( int i,const Table& t )
 }
 
 //valRegion::[Int]->[Cell]->[Int]
-inline TVctInt valRegion (const TVctInt &is,const Table &t)
+inline TVctInt valRegion (const TVctInt &is,const Grid &t)
 {
     auto temp=TVctIntOpt();
     ranges::transform(is,ranges::back_inserter(temp),
@@ -263,18 +263,18 @@ inline TVctInt valRegion (const TVctInt &is,const Table &t)
     return catMaybes(temp);
 }
 //valRow::Int->[Cell]->[Int]
-inline TVctInt valRow ( int r,const Table &t)
+inline TVctInt valRow ( int r,const Grid &t)
 {
     return valRegion(indexesRow(r),t);
 }
 
-inline TVctInt valCol ( int c,const Table &t)
+inline TVctInt valCol ( int c,const Grid &t)
 {
     return valRegion(indexesCol(c),t);
 }
 
 
-inline TVctInt valBlock ( int b,const Table &t)
+inline TVctInt valBlock ( int b,const Grid &t)
 {
     return valRegion(indexesBlock(b),t);
 }
@@ -283,11 +283,11 @@ inline TVctInt valBlock ( int b,const Table &t)
 //valsInRegions::( Int->[Cell]->[Int] )-> [Int]-> [Cell]-> [[Int]]
 
 template <typename F>
-inline std::vector<TVctInt> valsInRegions(F &&f,const TVctInt& xs,const Table & table )
+inline std::vector<TVctInt> valsInRegions(F &&f,const TVctInt& xs,const Grid & grid )
 {
     auto temp=std::vector<TVctInt> ();
     ranges::transform(xs,ranges::back_inserter(temp),
-                      [t=table,f=f](auto && x)->TVctInt
+                      [t=grid,f=f](auto && x)->TVctInt
     {
 
         return f(x,t);
@@ -322,8 +322,8 @@ inline bool checkRegion (bool b,const TVctInt& xs)
 }
 
 
-//checkTable::[Cell]->Bool
-inline bool checkTable (const Table& t)
+//checkGrid::[Cell]->Bool
+inline bool checkGrid (const Grid& t)
 {
     const auto ct = ranges::view::take(ranges::view::ints(0), sizeTbl);
 
@@ -353,18 +353,18 @@ inline bool cellFilled(bool b,const Cell &c)
 }
 
 
-//check to see if the table is filled
-//tableFilled::[Cell]->Bool
-inline bool tableFilled(const Table &t)
+//check to see if the grid is filled
+//gridFilled::[Cell]->Bool
+inline bool gridFilled(const Grid &t)
 {
     return ranges::accumulate(t,true,cellFilled);
 }
 
 //check to see if  we've found the solution
 //isSolved :: [Cell] -> Bool
-inline bool isSolved(const Table &t)
+inline bool isSolved(const Grid &t)
 {
-    return tableFilled(t) && checkTable(t);
+    return gridFilled(t) && checkGrid(t);
 }
 
 
@@ -377,11 +377,11 @@ inline Pos getPos(int i)
 
 //return a list of cells given the list of indexes
 //getCells :: [Int] -> [Cell]-> [Cell]
-inline Table getCells (const TVctInt &xs, const Table &t)
+inline Grid getCells (const TVctInt &xs, const Grid &t)
 {
     //getCells  xs t = map (\x-> t!!x) xs
 
-    auto temp=Table ();
+    auto temp=Grid ();
     ranges::transform(xs,ranges::back_inserter(temp),
                       [t=t](auto &&i)->Cell
     {
@@ -436,7 +436,7 @@ inline TVctInt getBlock(int idx)
     return TVctInt{ranges::begin(line),it};
 
 }
-inline Table neighboursCells(const Neighbours &n)
+inline Grid neighboursCells(const Neighbours &n)
 {
     auto ret= n.rows;
     ranges::copy(n.cols,ranges::back_inserter(ret));
@@ -447,7 +447,7 @@ inline Table neighboursCells(const Neighbours &n)
 
 
 //getNeighbours::Cell->[Cell]->Neighbours
-inline Neighbours getNeighbours(const Cell &c,const Table &t)
+inline Neighbours getNeighbours(const Cell &c,const Grid &t)
 {
     const auto p1 = c.idx;
 
@@ -473,8 +473,8 @@ inline bool validCell(bool b, const Cell &c)
     return b;
 }
 
-//validTable::[Cell]->Bool
-inline bool validTable(const Table &t)
+//validGrid::[Cell]->Bool
+inline bool validGrid(const Grid &t)
 {
     if (t.size () ==sizeTbl*sizeTbl)
         return ranges::accumulate(t,true,validCell);
@@ -482,15 +482,15 @@ inline bool validTable(const Table &t)
 }
 
 //cleanCell::Cell->[Cell]->[Cell]
-inline Table cleanCell(const Cell &c,const Table &t)
+inline Grid cleanCell(const Cell &c,const Grid &t)
 {
     const auto cs = neighboursCells (cleanNeighbours (getNeighbours (c, t)));
-    return rplTable (cs ,t);
+    return rplGrid (cs ,t);
 }
 
-//cleanTable::[Cell]->[Cell]
-//cleanTable t = foldr cleanCell t t
-inline Table cleanTable(const Table &t )
+//cleanGrid::[Cell]->[Cell]
+//cleanGrid t = foldr cleanCell t t
+inline Grid cleanGrid(const Grid &t )
 {
     auto ret= t;
     return  foldr(cleanCell,ret,t);
@@ -499,7 +499,7 @@ inline Table cleanTable(const Table &t )
 }
 
 //candidatesRegion::[Int]->[Cell]->[Int]
-inline TVctInt candidatesRegion(const TVctInt &r, const Table &t)
+inline TVctInt candidatesRegion(const TVctInt &r, const Grid &t)
 {
     auto tmp1=valRegion( r, t );
 
@@ -519,7 +519,7 @@ inline TVctInt candidatesRegion(const TVctInt &r, const Table &t)
 
 
 //addIndexCandidat::Int->[Cell]->Int->Maybe Int
-inline std::optional<int> addIndexCandidat(int r,const Table &t, int v)
+inline std::optional<int> addIndexCandidat(int r,const Grid &t, int v)
 {
     auto res = std::optional<int>();
     const auto c = t[r];
@@ -535,7 +535,7 @@ inline std::optional<int> addIndexCandidat(int r,const Table &t, int v)
     return res;
 }
 //indexCandidatRegion::[Int]->[Cell]->Int->[Int]
-inline TVctInt indexCandidatRegion(const TVctInt &rs,const Table &t, int v)
+inline TVctInt indexCandidatRegion(const TVctInt &rs,const Grid &t, int v)
 {
     auto temp= TVctIntOpt();
     ranges::transform(rs,ranges::back_inserter(temp),
@@ -549,7 +549,7 @@ inline TVctInt indexCandidatRegion(const TVctInt &rs,const Table &t, int v)
     return ret;
 }
 //indexesCandidates :: [Int]->[Cell]->[CandidatIndexes]
-inline TVctCandidatIndexes indexesCandidates(const TVctInt &r,const Table &t )
+inline TVctCandidatIndexes indexesCandidates(const TVctInt &r,const Grid &t )
 {
     const auto cd = candidatesRegion (r, t);
     auto temp= TVctCandidatIndexes();
@@ -567,7 +567,7 @@ inline TVctCandidatIndexes indexesCandidates(const TVctInt &r,const Table &t )
 //a=TVctCandidatIndexes
 //b=TVctInt
 //the extra parameter will be "curryed"
-inline TVctCandidatIndexes joinCandidates(const TVctCandidatIndexes &lst,const TVctInt &r ,const Table &t)
+inline TVctCandidatIndexes joinCandidates(const TVctCandidatIndexes &lst,const TVctInt &r ,const Grid &t)
 {
     auto tmp=indexesCandidates(r,t );
     ranges::copy(lst,ranges::back_inserter(tmp));
@@ -575,7 +575,7 @@ inline TVctCandidatIndexes joinCandidates(const TVctCandidatIndexes &lst,const T
 }
 
 //allCandidatIndexes:: [[Int]]->[Cell]->[CandidatIndexes]
-inline TVctCandidatIndexes allCandidatIndexes(const std::vector<TVctInt> &xs , const Table &t)
+inline TVctCandidatIndexes allCandidatIndexes(const std::vector<TVctInt> &xs , const Grid &t)
 {
     auto res=TVctCandidatIndexes();
     auto curryjoinCandidates= std::bind(joinCandidates,std::placeholders::_1,std::placeholders::_2,t);
@@ -602,9 +602,9 @@ inline std::optional<CandidatIndexes> uniqCandidate (const TVctCandidatIndexes &
 
 
 //toContenders:: Cell->[Cell]
-inline Table toContenders(const Cell &c)
+inline Grid toContenders(const Cell &c)
 {
-    auto res=Table();
+    auto res=Grid();
     if (c.val.index()==1)
     {
         const auto tmp = std::get<1>(c.val);
@@ -640,7 +640,7 @@ inline OrdCandidates buildOrdCandidates(const Cell &c)
 }
 
 //orderedCandidates :: [Cell]-> [OrdCandidates]
-inline VctOrdCandidates orderedCandidates(const Table &t)
+inline VctOrdCandidates orderedCandidates(const Grid &t)
 {
     auto tmp=VctOrdCandidates();
     ranges::transform(t,ranges::back_inserter(tmp),buildOrdCandidates);
@@ -659,12 +659,12 @@ inline VctOrdCandidates orderedCandidates(const Table &t)
 
 
 //unitNode:: [Cell] -> Node
-inline Node unitNode(const Table &t)
+inline Node unitNode(const Grid &t)
 {
     return Node {t ,{},{}};
 }
 //return monad funtion
-inline Node returnNode(const Table &t)
+inline Node returnNode(const Grid &t)
 {
     return Node {t ,{},{t}};
 }
@@ -682,18 +682,18 @@ inline bool guard(const Node &n)
 
 
 //nextNode::Node->a->Node
-inline Node cellToNode(const Table &t,const CandidatIndexes &dc )
+inline Node cellToNode(const Grid &t,const CandidatIndexes &dc )
 {
     const auto newcell= Cell{ dc.idxs[0],dc.candidate};
-const auto t1 =cleanTable (rplCell( newcell, t ));
-if (validTable (t1))
+const auto t1 =cleanGrid (rplCell( newcell, t ));
+if (validGrid (t1))
 return unitNode (t1);
 else
 return unitNode (t);
 
 }
 
-inline Node cellToNode(const Table &t,int i )
+inline Node cellToNode(const Grid &t,int i )
 {
     auto res=unitNode(t);
     const auto c= t[ i];
@@ -701,22 +701,22 @@ inline Node cellToNode(const Table &t,int i )
     {
         auto l= std::get<1>(c.val);
         const auto ct = toContenders(c);
-        std::vector<Table> ts1;
+        std::vector<Grid> ts1;
         ranges::transform(ct,ranges::back_inserter(ts1),
-                          [t=t](auto &&x)->Table
+                          [t=t](auto &&x)->Grid
         {
-            return cleanTable ( rplCell (x ,t ));
+            return cleanGrid ( rplCell (x ,t ));
         });
 
         auto it = ranges::partition(ts1,[](auto &&x)->bool
         {
-            return validTable ( x );
+            return validGrid ( x );
         });
 
-        auto ts2 = std::vector<Table>(ts1.begin(),it);
+        auto ts2 = std::vector<Grid>(ts1.begin(),it);
         if(ts2.size() > 0)
         {
-            auto tail = std::vector<Table>(ts2.begin()+1,ts2.end());
+            auto tail = std::vector<Grid>(ts2.begin()+1,ts2.end());
             res=Node{ts2[0],tail,{}};
     }
 }
@@ -726,7 +726,7 @@ return res;
 
 
 //contBind::[Cell]->Node
-inline Node contBind(const Table & t)
+inline Node contBind(const Grid & t)
 {
     if (isSolved (t) == true)
         return returnNode(t);
@@ -772,7 +772,7 @@ inline Node bind (const Node &n, F &&f)
         {
             //        std::cout << "backtracking\n";
             auto head = n.contenders[0];
-            auto tail = std::vector<Table>(n.contenders.begin()+1,n.contenders.end());
+            auto tail = std::vector<Grid>(n.contenders.begin()+1,n.contenders.end());
             return Node {head,tail,comp.solutions};
 
         }

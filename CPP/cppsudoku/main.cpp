@@ -8,7 +8,7 @@ using namespace std::chrono;
 Node solve(const TVctCellInput &contents)
 {
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
-    auto t=toTable(contents);
+    auto t=toGrid(contents);
     const auto startNode=Node{t,{},{}};
     auto res=solve(startNode);
 

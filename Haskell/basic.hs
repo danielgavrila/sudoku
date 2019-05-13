@@ -38,13 +38,13 @@ toCellInput  ls = let mm=map  (readMaybe) ls
 toListCI::[String] -> [CellInput]                     
 toListCI  ls = catMaybes (map (\x-> toCellInput ( words x))  ls)
      
-toTable ::[CellInput]-> [Cell]
-toTable c = let
+toGrid ::[CellInput]-> [Cell]
+toGrid c = let
               t0 = fill c
               t1 = padding indexes t0
               t2 = sortBy (\x y -> compare (idx x) (idx  y))   t1
             in
-            cleanTable t2  
+            cleanGrid t2
 
 
 data Value = Filled Int | Candidates [Int] 
@@ -103,9 +103,9 @@ validCell b c =case (val c) of
                               else False
 
 
--- check to see if the length of candidates is at least 0 for the table
-validTable::[Cell]->Bool
-validTable t = if length t == size * size 
+-- check to see if the length of candidates is at least 0 for the grid
+validGrid::[Cell]->Bool
+validGrid t = if length t == size * size
                     then foldl  validCell  True t
                     else False
 
@@ -181,14 +181,14 @@ valBlock b t = valRegion ( indexesBlock b  ) t
 
 --return a list of values (list of ints) in a reagion 
 valsInRegions::( Int->[Cell]->[Int] )-> [Int]-> [Cell]-> [[Int]]
-valsInRegions f xs table = map (\x -> f x table) xs
+valsInRegions f xs grid = map (\x -> f x grid) xs
 
 --check if the region has duplicates used in foldl
 checkRegion ::Bool->[Int]->Bool
 checkRegion b xs = b && not (hasDuplicates xs)
 
-checkTable::[Cell]->Bool
-checkTable t = let lsRows= valsInRegions valRow [0..size -1] t
+checkGrid::[Cell]->Bool
+checkGrid t = let  lsRows= valsInRegions valRow [0..size -1] t
                    br=foldl checkRegion (True)  lsRows
                    lsCols= valsInRegions valCol [0..size -1] t
                    bc=foldl checkRegion (True)  lsRows
@@ -208,13 +208,13 @@ cellFilled  b c= case  val c of
                   Candidates _ -> False
 
 
---check to see if the table is filled  
-tableFilled::[Cell]->Bool
-tableFilled t = foldl ( cellFilled  ) True  t
+--check to see if the grid is filled
+gridFilled::[Cell]->Bool
+gridFilled t = foldl ( cellFilled  ) True  t
 
 -- check to see if  we've found the solution
 isSolved :: [Cell] -> Bool
-isSolved  t = tableFilled t && checkTable t
+isSolved  t = gridFilled t && checkGrid t
 
 -- the first argument is the pivot , could be filled or not
 -- the second argument is one cell in neighbourhood (rows, cols or block)
@@ -351,14 +351,14 @@ uniqCandidate  x = if length x ==0
                            then Just (head x)
                            else Nothing
 
--- replace cell in table
+-- replace cell in grid
 rplCell::Cell->[Cell]->[Cell]
 rplCell new t = let (x,_:xs) = splitAt (idx new) t in
                 x++(new:xs)
 
---replace table with a list of cell (first argument)
-rplTable::[Cell]->[Cell]->[Cell]
-rplTable news table = foldr rplCell table  news 
+--replace grid with a list of cell (first argument)
+rplGrid::[Cell]->[Cell]->[Cell]
+rplGrid news grid = foldr rplCell grid  news
 
 neighboursCells :: Neighbours -> [Cell]
 neighboursCells n = (rows n) ++ (cols n) ++ (block n)
@@ -373,10 +373,10 @@ getNeighbours c t = let p1 = idx c in
 
 cleanCell::Cell->[Cell]->[Cell]
 cleanCell t tbl = let cs= neighboursCells (cleanNeighbours (getNeighbours t tbl)) in
-                  rplTable cs tbl
+                  rplGrid cs tbl
 
-cleanTable::[Cell]->[Cell]
-cleanTable t = foldr cleanCell t t 
+cleanGrid::[Cell]->[Cell]
+cleanGrid t = foldr cleanCell t t
 
 toContenders:: Cell->[Cell]
 toContenders c = case val c of
@@ -400,19 +400,19 @@ instance CellToNode CandidatIndexes where
         cellToNode t dc  = 
                 let
                    newcell= Cell (head (idxs dc)) (Filled (candidate dc))
-                   t1 =cleanTable (rplCell newcell t )
+                   t1 =cleanGrid (rplCell newcell t )
                 in 
-                if validTable t1== True
-                then unitNode t1 --valid table, continues the search with this table
-                else unitNode t  --invalid table , return the same table
+                if validGrid t1== True
+                then unitNode t1 --valid grid, continues the search with this grid
+                else unitNode t  --invalid grid , return the same grid
 
 instance CellToNode Int  where
        cellToNode t i  = let c= t  !! i in  
                 case val c of
                    Filled _ ->unitNode t 
                    Candidates l -> let ct= toContenders c
-                                       ts1 = map (\x -> cleanTable ( rplCell x t ))  ct  
-                                       ts2 = filter (\x -> validTable x == True) ts1 --filter the valid tables only
+                                       ts1 = map (\x -> cleanGrid ( rplCell x t ))  ct
+                                       ts2 = filter (\x -> validGrid x == True) ts1 --filter the valid grids only
                                    in
                                    if length ts2 > 0 
                                    then 
@@ -439,7 +439,7 @@ contBind t  =  if isSolved t == True
 
 
                               
--- guard for search termination,table is empty and  list of contenders is empty
+-- guard for search termination,grid is empty and  list of contenders is empty
 guard::Node ->Bool
 guard n = if  length (act n)==0  && length (contenders n)==0   
           then True
@@ -470,7 +470,7 @@ solve n = let cont= n >>= contBind in
 oneShot::String->Node
 oneShot contents= let           
                     ll = lines contents
-                    tbl= toTable (toListCI ll)
+                    tbl= toGrid (toListCI ll)
                     n= unitNode tbl
                   in
                     solve n

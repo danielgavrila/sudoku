@@ -40,10 +40,10 @@ inline bool operator == (const Cell &a , const Cell &b)
 
 
 
-using Table = std::vector <Cell>;
-using TableOpt = std::vector <std::optional<Cell>>;
+using Grid = std::vector <Cell>;
+using GridOpt = std::vector <std::optional<Cell>>;
 
-inline bool operator == (const Table &a , const Table &b)
+inline bool operator == (const Grid &a , const Grid &b)
 {
 
     if (a.size()==b.size())
@@ -61,9 +61,9 @@ inline bool operator == (const Table &a , const Table &b)
 
 }
 struct Node {
-   Table act ;
-   std::vector<Table> contenders;
-   std::vector<Table> solutions;
+   Grid act ;
+   std::vector<Grid> contenders;
+   std::vector<Grid> solutions;
 };
 
 struct OrdCandidates {
@@ -80,7 +80,7 @@ inline  TVctInt indexes()
 
 struct Neighbours{
        Cell pivot ;
-       Table rows ,cols ,block ;
+       Grid rows ,cols ,block ;
 };
 
 
