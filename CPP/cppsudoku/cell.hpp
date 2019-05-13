@@ -9,43 +9,49 @@ T foldr( F &&f,const  T &z, C &&c) {
     return ranges::accumulate(c, z,flip(f));
 
 }
+inline void print (const Cell &c)
+{
+    auto idx = c.idx;
+    std::cout << "idx= "<< idx ;
+    switch (c.val.index())
+    {
+    case 0:
+    {
+        auto fil=std::get<0>(c.val);
+        std::cout << " ,F= "<<fil;
+    }
+        break;
+    case 1:
+    {
+        auto lst=std::get<1>(c.val);
+        std::cout << " ,Cand= [" ;
+        bool bFst=true;
+        for (auto &x:lst)
+        {
+            if(false==bFst)
+                std::cout <<", ";
+            std::cout <<x;
+            bFst=false;
+        }
+        std::cout <<"]";
+
+    }
+        break;
+
+    }
+    std::cout <<std::endl;
+
+}
 
 inline void print (const Table &t)
 {
+
+
     for (auto &o:t)
     {
-        auto idx = o.idx;
-        std::cout << "idx= "<< idx ;
-        switch (o.val.index())
-        {
-        case 0:
-        {
-            auto fil=std::get<0>(o.val);
-            std::cout << " ,F= "<<fil;
-        }
-            break;
-        case 1:
-        {
-            auto lst=std::get<1>(o.val);
-            std::cout << " ,Cand= [" ;
-            bool bFst=true;
-            for (auto &x:lst)
-            {
-                if(false==bFst)
-                    std::cout <<", ";
-                std::cout <<x;
-                bFst=false;
-            }
-            std::cout <<"]";
-
-        }
-            break;
-
-        }
-        std::cout <<std::endl;
+        print(o);
     }
 }
-
 
 inline void print (const Node &n)
 {
@@ -681,9 +687,9 @@ inline Node cellToNode(const Table &t,const CandidatIndexes &dc )
     const auto newcell= Cell{ dc.idxs[0],dc.candidate};
 const auto t1 =cleanTable (rplCell( newcell, t ));
 if (validTable (t1))
-   return unitNode (t1);
+return unitNode (t1);
 else
-   return unitNode (t);
+return unitNode (t);
 
 }
 
@@ -723,7 +729,7 @@ return res;
 inline Node contBind(const Table & t)
 {
     if (isSolved (t) == true)
-       return returnNode(t);
+        return returnNode(t);
     else
     {
         auto oc = orderedCandidates( t);
@@ -764,7 +770,7 @@ inline Node bind (const Node &n, F &&f)
     {
         if (n.contenders.size() > 0)// backtracking   , continues with the head of contenders list
         {
-    //        std::cout << "backtracking\n";
+            //        std::cout << "backtracking\n";
             auto head = n.contenders[0];
             auto tail = std::vector<Table>(n.contenders.begin()+1,n.contenders.end());
             return Node {head,tail,comp.solutions};
@@ -772,13 +778,13 @@ inline Node bind (const Node &n, F &&f)
         }
         else
         {
-//            std::cout << "end search\n";
+            //            std::cout << "end search\n";
             return Node {{},{},comp.solutions};
         }
     }
     else
     {
-  //      std::cout << "continues\n";
+        //      std::cout << "continues\n";
         ranges::copy(n.contenders,ranges::back_inserter(comp.contenders));
         return Node {comp.act,comp.contenders,comp.solutions};
     }
@@ -792,6 +798,6 @@ inline Node solve(const Node &n)
     if (guard(cont))
         return cont;
     else
-       return solve (cont);
+        return solve (cont);
 
 }
